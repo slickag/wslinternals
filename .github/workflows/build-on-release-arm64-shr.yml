@@ -1,20 +1,26 @@
-name: Build and Upload Artifacts on Release
+name: Build and Upload Artifacts on Release on Windows Arm Self-Hosted
 
 on:
   workflow_dispatch:
-  release:
-    types: [created]
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: [self-hosted, Windows, ARM64]
+    container:
+      image: mcr.microsoft.com/windows/servercore:ltsc2025-arm64
 
     steps:
+      - name: Install Scoop and Git
+        run: |
+          powershell -Command "Set-ExecutionPolicy RemoteSigned -Scope CurrentUser"
+          powershell -Command "iwr get.scoop.sh -useb | iex"
+          powershell -Command "scoop install aria2 7zip git"
+
       - name: Checkout repository
-        uses: actions/checkout@main
+        uses: actions/checkout@v2
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@main
+        uses: actions/setup-dotnet@v1
         with:
           dotnet-version: 8.0.x
 
@@ -34,13 +40,13 @@ jobs:
           dotnet publish --configuration Release --no-build --runtime win-arm64 --self-contained true /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true -o ./publish/arm64 wslinternals.sln
 
       - name: Upload x86_64 Artifacts
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v4
         with:
           name: wslinternals-x64
           path: ./publish/x64/
 
       - name: Upload arm64 Artifacts
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v4
         with:
           name: wslinternals-arm64
           path: ./publish/arm64/
